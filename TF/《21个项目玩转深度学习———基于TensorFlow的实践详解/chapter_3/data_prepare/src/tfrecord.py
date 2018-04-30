@@ -60,7 +60,6 @@ import random
 import sys
 import threading
 
-
 import numpy as np
 import tensorflow as tf
 import logging
@@ -95,16 +94,19 @@ def _convert_to_example(filename, image_buffer, label, text, height, width):
     channels = 3
     image_format = 'JPEG'
 
-    example = tf.train.Example(features=tf.train.Features(feature={
-        'image/height': _int64_feature(height),
-        'image/width': _int64_feature(width),
-        'image/colorspace': _bytes_feature(colorspace),
-        'image/channels': _int64_feature(channels),
-        'image/class/label': _int64_feature(label),
-        'image/class/text': _bytes_feature(text),
-        'image/format': _bytes_feature(image_format),
-        'image/filename': _bytes_feature(os.path.basename(filename)),
-        'image/encoded': _bytes_feature(image_buffer)}))
+    example = tf.train.Example(
+        features=tf.train.Features(
+            feature={
+                'image/height': _int64_feature(height),
+                'image/width': _int64_feature(width),
+                'image/colorspace': _bytes_feature(colorspace),
+                'image/channels': _int64_feature(channels),
+                'image/class/label': _int64_feature(label),
+                'image/class/text': _bytes_feature(text),
+                'image/format': _bytes_feature(image_format),
+                'image/filename': _bytes_feature(os.path.basename(filename)),
+                'image/encoded': _bytes_feature(image_buffer)
+            }))
     return example
 
 
@@ -118,19 +120,21 @@ class ImageCoder(object):
         # Initializes function that converts PNG to JPEG data.
         self._png_data = tf.placeholder(dtype=tf.string)
         image = tf.image.decode_png(self._png_data, channels=3)
-        self._png_to_jpeg = tf.image.encode_jpeg(image, format='rgb', quality=100)
+        self._png_to_jpeg = tf.image.encode_jpeg(
+            image, format='rgb', quality=100)
 
         # Initializes function that decodes RGB JPEG data.
         self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
-        self._decode_jpeg = tf.image.decode_jpeg(self._decode_jpeg_data, channels=3)
+        self._decode_jpeg = tf.image.decode_jpeg(
+            self._decode_jpeg_data, channels=3)
 
     def png_to_jpeg(self, image_data):
-        return self._sess.run(self._png_to_jpeg,
-                              feed_dict={self._png_data: image_data})
+        return self._sess.run(
+            self._png_to_jpeg, feed_dict={self._png_data: image_data})
 
     def decode_jpeg(self, image_data):
-        image = self._sess.run(self._decode_jpeg,
-                               feed_dict={self._decode_jpeg_data: image_data})
+        image = self._sess.run(
+            self._decode_jpeg, feed_dict={self._decode_jpeg_data: image_data})
         assert len(image.shape) == 3
         assert image.shape[2] == 3
         return image
@@ -204,15 +208,18 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
     num_files_in_thread = ranges[thread_index][1] - ranges[thread_index][0]
 
     counter = 0
-    for s in xrange(num_shards_per_batch):
+    for s in range(num_shards_per_batch):
         # Generate a sharded version of the file name, e.g. 'train-00002-of-00010'
         shard = thread_index * num_shards_per_batch + s
-        output_filename = '%s_%s_%.5d-of-%.5d.tfrecord' % (command_args.dataset_name, name, shard, num_shards)
-        output_file = os.path.join(command_args.output_directory, output_filename)
+        output_filename = '%s_%s_%.5d-of-%.5d.tfrecord' % (
+            command_args.dataset_name, name, shard, num_shards)
+        output_file = os.path.join(command_args.output_directory,
+                                   output_filename)
         writer = tf.python_io.TFRecordWriter(output_file)
 
         shard_counter = 0
-        files_in_shard = np.arange(shard_ranges[s], shard_ranges[s + 1], dtype=int)
+        files_in_shard = np.arange(
+            shard_ranges[s], shard_ranges[s + 1], dtype=int)
         for i in files_in_shard:
             filename = filenames[i]
             label = labels[i]
@@ -220,20 +227,23 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
 
             image_buffer, height, width = _process_image(filename, coder)
 
-            example = _convert_to_example(filename, image_buffer, label,
-                                          text, height, width)
+            example = _convert_to_example(filename, image_buffer, label, text,
+                                          height, width)
             writer.write(example.SerializeToString())
             shard_counter += 1
             counter += 1
 
             if not counter % 1000:
-                logging.info('%s [thread %d]: Processed %d of %d images in thread batch.' %
-                             (datetime.now(), thread_index, counter, num_files_in_thread))
+                logging.info(
+                    '%s [thread %d]: Processed %d of %d images in thread batch.'
+                    % (datetime.now(), thread_index, counter,
+                       num_files_in_thread))
                 sys.stdout.flush()
 
         writer.close()
         logging.info('%s [thread %d]: Wrote %d images to %s' %
-                     (datetime.now(), thread_index, shard_counter, output_file))
+                     (datetime.now(), thread_index, shard_counter,
+                      output_file))
         sys.stdout.flush()
         shard_counter = 0
     logging.info('%s [thread %d]: Wrote %d images to %d shards.' %
@@ -241,7 +251,8 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
     sys.stdout.flush()
 
 
-def _process_image_files(name, filenames, texts, labels, num_shards, command_args):
+def _process_image_files(name, filenames, texts, labels, num_shards,
+                         command_args):
     """Process and save list of images as TFRecord of Example protos.
     Args:
       name: string, unique identifier specifying the data set
@@ -254,13 +265,15 @@ def _process_image_files(name, filenames, texts, labels, num_shards, command_arg
     assert len(filenames) == len(labels)
 
     # Break all images into batches with a [ranges[i][0], ranges[i][1]].
-    spacing = np.linspace(0, len(filenames), command_args.num_threads + 1).astype(np.int)
+    spacing = np.linspace(0, len(filenames),
+                          command_args.num_threads + 1).astype(np.int)
     ranges = []
-    for i in xrange(len(spacing) - 1):
+    for i in range(len(spacing) - 1):
         ranges.append([spacing[i], spacing[i + 1]])
 
     # Launch a thread for each batch.
-    logging.info('Launching %d threads for spacings: %s' % (command_args.num_threads, ranges))
+    logging.info('Launching %d threads for spacings: %s' %
+                 (command_args.num_threads, ranges))
     sys.stdout.flush()
 
     # Create a mechanism for monitoring when all threads are finished.
@@ -270,9 +283,9 @@ def _process_image_files(name, filenames, texts, labels, num_shards, command_arg
     coder = ImageCoder()
 
     threads = []
-    for thread_index in xrange(len(ranges)):
-        args = (coder, thread_index, ranges, name, filenames,
-                texts, labels, num_shards, command_args)
+    for thread_index in range(len(ranges)):
+        args = (coder, thread_index, ranges, name, filenames, texts, labels,
+                num_shards, command_args)
         t = threading.Thread(target=_process_image_files_batch, args=args)
         t.start()
         threads.append(t)
@@ -307,9 +320,11 @@ def _find_image_files(data_dir, labels_file, command_args):
       texts: list of strings; each string is the class, e.g. 'dog'
       labels: list of integer; each integer identifies the ground truth.
     """
-    logging.info('Determining list of input files and labels from %s.' % data_dir)
-    unique_labels = [l.strip() for l in tf.gfile.FastGFile(
-        labels_file, 'r').readlines()]
+    logging.info(
+        'Determining list of input files and labels from %s.' % data_dir)
+    unique_labels = [
+        l.strip() for l in tf.gfile.FastGFile(labels_file, 'r').readlines()
+    ]
 
     labels = []
     filenames = []
@@ -329,14 +344,14 @@ def _find_image_files(data_dir, labels_file, command_args):
         filenames.extend(matching_files)
 
         if not label_index % 100:
-            logging.info('Finished finding files in %d of %d classes.' % (
-                label_index, len(labels)))
+            logging.info('Finished finding files in %d of %d classes.' %
+                         (label_index, len(labels)))
         label_index += 1
 
     # Shuffle the ordering of all image files in order to guarantee
     # random ordering of the images with respect to label in the
     # saved TFRecord files. Make the randomization repeatable.
-    shuffled_index = range(len(filenames))
+    shuffled_index = list(range(len(filenames)))
     random.seed(12345)
     random.shuffle(shuffled_index)
 
@@ -358,23 +373,33 @@ def _process_dataset(name, directory, num_shards, labels_file, command_args):
       num_shards: integer number of shards for this data set.
       labels_file: string, path to the labels file.
     """
-    filenames, texts, labels = _find_image_files(directory, labels_file, command_args)
-    _process_image_files(name, filenames, texts, labels, num_shards, command_args)
+    filenames, texts, labels = _find_image_files(directory, labels_file,
+                                                 command_args)
+    _process_image_files(name, filenames, texts, labels, num_shards,
+                         command_args)
 
 
 def check_and_set_default_args(command_args):
-    if not(hasattr(command_args, 'train_shards')) or command_args.train_shards is None:
+    if not (hasattr(command_args,
+                    'train_shards')) or command_args.train_shards is None:
         command_args.train_shards = 5
-    if not(hasattr(command_args, 'validation_shards')) or command_args.validation_shards is None:
+    if not (hasattr(
+            command_args,
+            'validation_shards')) or command_args.validation_shards is None:
         command_args.validation_shards = 5
-    if not(hasattr(command_args, 'num_threads')) or command_args.num_threads is None:
+    if not (hasattr(command_args,
+                    'num_threads')) or command_args.num_threads is None:
         command_args.num_threads = 5
-    if not(hasattr(command_args, 'class_label_base')) or command_args.class_label_base is None:
+    if not (hasattr(
+            command_args,
+            'class_label_base')) or command_args.class_label_base is None:
         command_args.class_label_base = 0
-    if not(hasattr(command_args, 'dataset_name')) or command_args.dataset_name is None:
+    if not (hasattr(command_args,
+                    'dataset_name')) or command_args.dataset_name is None:
         command_args.dataset_name = ''
     assert not command_args.train_shards % command_args.num_threads, (
-        'Please make the command_args.num_threads commensurate with command_args.train_shards')
+        'Please make the command_args.num_threads commensurate with command_args.train_shards'
+    )
     assert not command_args.validation_shards % command_args.num_threads, (
         'Please make the command_args.num_threads commensurate with '
         'command_args.validation_shards')
@@ -406,6 +431,8 @@ def main(command_args):
 
     # Run it!
     _process_dataset('validation', command_args.validation_directory,
-                     command_args.validation_shards, command_args.labels_file, command_args)
+                     command_args.validation_shards, command_args.labels_file,
+                     command_args)
     _process_dataset('train', command_args.train_directory,
-                     command_args.train_shards, command_args.labels_file, command_args)
+                     command_args.train_shards, command_args.labels_file,
+                     command_args)
