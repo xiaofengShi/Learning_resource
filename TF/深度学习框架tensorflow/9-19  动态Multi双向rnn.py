@@ -9,9 +9,9 @@ import tensorflow as tf
 from tensorflow.contrib import rnn
 # 导入 MINST 数据集
 from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("/data/", one_hot=True)
+mnist = input_data.read_data_sets("./data/", one_hot=True)
 
-#参数设置
+# 参数设置
 learning_rate = 0.001
 training_iters = 100000
 batch_size = 128
@@ -30,13 +30,16 @@ x = tf.placeholder("float", [None, n_steps, n_input])
 y = tf.placeholder("float", [None, n_classes])
 
 x1 = tf.unstack(x, n_steps, 1)
+
 lstm_fw_cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
 lstm_bw_cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
+import numpy as np
+print('lstm_fw_cell', np.shape(lstm_fw_cell))
 
-#outputs, _, _ = rnn.static_bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, x1,
+# outputs, _, _ = rnn.static_bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, x1,
 #                                              dtype=tf.float32)
 
-#outputs, _, _ = rnn.stack_bidirectional_rnn([lstm_fw_cell],[lstm_bw_cell], x1,
+# outputs, _, _ = rnn.stack_bidirectional_rnn([lstm_fw_cell],[lstm_bw_cell], x1,
 #                                              dtype=tf.float32)
 
 stacked_rnn = []
@@ -44,18 +47,19 @@ stacked_bw_rnn = []
 for i in range(3):
     stacked_rnn.append(tf.contrib.rnn.LSTMCell(n_hidden))
     stacked_bw_rnn.append(tf.contrib.rnn.LSTMCell(n_hidden))
-
-#outputs, _, _ = rnn.stack_bidirectional_rnn(stacked_rnn,stacked_bw_rnn, x1,
+print('stacked', np.shape(stacked_rnn[0]))
+# outputs, _, _ = rnn.stack_bidirectional_rnn(stacked_rnn,stacked_bw_rnn, x1,
 #                                              dtype=tf.float32)
 
 mcell = tf.contrib.rnn.MultiRNNCell(stacked_rnn)
 mcell_bw = tf.contrib.rnn.MultiRNNCell(stacked_bw_rnn)
 
-#outputs, _, _ = rnn.stack_bidirectional_rnn([mcell],[mcell_bw], x1,
+# outputs, _, _ = rnn.stack_bidirectional_rnn([mcell],[mcell_bw], x1,
 #                                              dtype=tf.float32)
 
 outputs, _, _ = rnn.stack_bidirectional_dynamic_rnn(
     [mcell], [mcell_bw], x, dtype=tf.float32)
+print(outputs[0].shape)
 outputs = tf.transpose(outputs, [1, 0, 2])
 print(outputs[0].shape, outputs.shape)
 pred = tf.contrib.layers.fully_connected(
@@ -86,8 +90,8 @@ with tf.Session() as sess:
             acc = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
             # Calculate batch loss
             loss = sess.run(cost, feed_dict={x: batch_x, y: batch_y})
-            print ("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
-                  "{:.6f}".format(loss) + ", Training Accuracy= " + \
+            print("Iter " + str(step*batch_size) + ", Minibatch Loss= " +
+                  "{:.6f}".format(loss) + ", Training Accuracy= " +
                   "{:.5f}".format(acc))
         step += 1
     print(" Finished!")
@@ -96,5 +100,5 @@ with tf.Session() as sess:
     test_len = 128
     test_data = mnist.test.images[:test_len].reshape((-1, n_steps, n_input))
     test_label = mnist.test.labels[:test_len]
-    print ("Testing Accuracy:", \
-        sess.run(accuracy, feed_dict={x: test_data, y: test_label}))
+    print("Testing Accuracy:",
+          sess.run(accuracy, feed_dict={x: test_data, y: test_label}))

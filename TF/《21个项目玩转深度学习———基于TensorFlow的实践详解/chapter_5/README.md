@@ -70,11 +70,11 @@ tensorboard --logdir voc/train_dir/
 
 运行(需要根据voc/train_dir/里实际保存的checkpoint，将1582改为合适的数值)：
 ```
-python export_inference_graph.py \
+python3 export_inference_graph.py \
   --input_type image_tensor \
-  --pipeline_config_path voc/voc.config \
-  --trained_checkpoint_prefix voc/train_dir/model.ckpt-1582
-  --output_directory voc/export/
+  --pipeline_config_path own_data_train/faster_rcnn_inception_resnet_v2_atrous_pets.config \
+  --trained_checkpoint_prefix own_data_train/train_dir/model.ckpt-17421 \
+  --output_directory own_data_train/export/
 ```
 
 导出的模型是voc/export/frozen_inference_graph.pb 文件。

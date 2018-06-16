@@ -9,7 +9,7 @@ Created on Sat Jun  3 06:00:19 2017
 import tensorflow as tf
 # 导入 MINST 数据集
 from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("/data/", one_hot=True)
+mnist = input_data.read_data_sets("./data/", one_hot=True)
 
 n_input = 28 # MNIST data 输入 (img shape: 28*28)
 n_steps = 28 # timesteps

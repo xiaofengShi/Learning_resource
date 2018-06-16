@@ -11,9 +11,9 @@ import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("/data/", one_hot=True)
 
-n_input = 28 # MNIST data 输入 (img shape: 28*28)
-n_steps = 28 # timesteps
-n_hidden = 128 # hidden layer num of features
+n_input = 28  # MNIST data 输入 (img shape: 28*28)
+n_steps = 28  # timesteps
+n_hidden = 128  # hidden layer num of features
 n_classes = 10  # MNIST 列别 (0-9 ，一共10类)
 
 tf.reset_default_graph()
@@ -25,24 +25,24 @@ y = tf.placeholder("float", [None, n_classes])
 
 x1 = tf.unstack(x, n_steps, 1)
 
-#1 BasicLSTMCell
+# 1 BasicLSTMCell
 #lstm_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
 #outputs, states = tf.contrib.rnn.static_rnn(lstm_cell, x1, dtype=tf.float32)
 
-#2 LSTMCell
+# 2 LSTMCell
 #lstm_cell = tf.contrib.rnn.LSTMCell(n_hidden, forget_bias=1.0)
 #outputs, states = tf.contrib.rnn.static_rnn(lstm_cell, x1, dtype=tf.float32)
 
-#3 gru
+# 3 gru
 gru = tf.contrib.rnn.GRUCell(n_hidden)
 #outputs = tf.contrib.rnn.static_rnn(gru, x1, dtype=tf.float32)
 
-#4 创建动态RNN
-outputs,_  = tf.nn.dynamic_rnn(gru,x,dtype=tf.float32)
+# 4 创建动态RNN
+outputs, _ = tf.nn.dynamic_rnn(gru, x, dtype=tf.float32)
+
 outputs = tf.transpose(outputs, [1, 0, 2])
 
-pred = tf.contrib.layers.fully_connected(outputs[-1],n_classes,activation_fn = None)
-
+pred = tf.contrib.layers.fully_connected(outputs[-1], n_classes, activation_fn=None)
 
 
 learning_rate = 0.001
@@ -55,7 +55,7 @@ cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, label
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # Evaluate model
-correct_pred = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
+correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 # 启动session
@@ -74,19 +74,15 @@ with tf.Session() as sess:
             acc = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
             # Calculate batch loss
             loss = sess.run(cost, feed_dict={x: batch_x, y: batch_y})
-            print ("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
-                  "{:.6f}".format(loss) + ", Training Accuracy= " + \
+            print("Iter " + str(step*batch_size) + ", Minibatch Loss= " +
+                  "{:.6f}".format(loss) + ", Training Accuracy= " +
                   "{:.5f}".format(acc))
         step += 1
-    print (" Finished!")
+    print(" Finished!")
 
     # 计算准确率 for 128 mnist test images
     test_len = 128
     test_data = mnist.test.images[:test_len].reshape((-1, n_steps, n_input))
     test_label = mnist.test.labels[:test_len]
-    print ("Testing Accuracy:", \
-        sess.run(accuracy, feed_dict={x: test_data, y: test_label}))
-
-    
-    
-
+    print("Testing Accuracy:",
+          sess.run(accuracy, feed_dict={x: test_data, y: test_label}))
