@@ -1,26 +1,29 @@
+# BEGIN BISECT_DEMO
 import bisect
 import sys
+""" 使用bisect进行满足省去排列的序列的位置查找 """
+HAYSTACK = [1, 4, 5, 6, 8, 12, 15, 20, 21, 23, 23, 26, 29, 30]
+NEEDLES = [0, 1, 2, 5, 8, 10, 22, 23, 29, 30, 31]
 
-hystack = [1, 4, 6, 8, 12, 15, 20, 21, 23, 23, 26, 29, 30]
-needles = [0, 1, 2, 5, 8, 10, 22, 23, 29, 30, 31]
-row_format = '{0:2d}@{1:2d}       {2}{0:<2d}'
+ROW_FMT = '{0:2d} @ {1:2d}    {2}{0:<2d}'
 
 
-def bisect_model(bisect_fn):
-    for needle in reversed(needles):
-        position = bisect_fn(hystack, needle)
-        offset = position * '  |'
-        print(row_format.format(needle, position, offset))
-        
+def demo(bisect_fn):
+    for needle in reversed(NEEDLES):
+        position = bisect_fn(HAYSTACK, needle)  # <1>
+        offset = position * '  |'  # <2>
+        print(ROW_FMT.format(needle, position, offset))  # <3>
 
 
 if __name__ == '__main__':
-    if sys.argv[-1] == 'left':
+    print('sys.argv', sys.argv)
+    if sys.argv[-1] == 'left':    # <4>
         bisect_fn = bisect.bisect_left
     else:
         bisect_fn = bisect.bisect
 
-    print('DEMO:', bisect_fn.__name__)
-    
+    print('DEMO:', bisect_fn.__name__)  # <5>
+    print('haystack ->', ' '.join('%2d' % n for n in HAYSTACK))
+    demo(bisect_fn)
 
-    main()
+# END BISECT_DEMO
