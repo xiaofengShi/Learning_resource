@@ -113,7 +113,8 @@ def main(args):
                                               dtypes=[tf.string, tf.int64],
                                               shapes=[(1,), (1,)],
                                               shared_name=None, name=None)
-        enqueue_op = input_queue.enqueue_many([image_paths_placeholder, labels_placeholder], name='enqueue_op')
+        enqueue_op = input_queue.enqueue_many([image_paths_placeholder, labels_placeholder],
+                                              name='enqueue_op')
 
         nrof_preprocess_threads = 4
         images_and_labels = []
@@ -153,7 +154,8 @@ def main(args):
 
         # Build the inference graph
         prelogits, _ = network.inference(image_batch, args.keep_probability,
-                                         phase_train=phase_train_placeholder, bottleneck_layer_size=args.embedding_size,
+                                         phase_train=phase_train_placeholder,
+                                         bottleneck_layer_size=args.embedding_size,
                                          weight_decay=args.weight_decay)
         logits = slim.fully_connected(prelogits, len(train_set), activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
@@ -164,8 +166,10 @@ def main(args):
 
         # Add center loss
         if args.center_loss_factor > 0.0:
-            prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.center_loss_alfa, nrof_classes)
-            tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.center_loss_factor)
+            prelogits_center_loss, _ = facenet.center_loss(
+                prelogits, label_batch, args.center_loss_alfa, nrof_classes)
+            tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES,
+                                 prelogits_center_loss * args.center_loss_factor)
 
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
                                                    args.learning_rate_decay_epochs * args.epoch_size, args.learning_rate_decay_factor, staircase=True)
@@ -182,8 +186,8 @@ def main(args):
         total_loss = tf.add_n([cross_entropy_mean] + regularization_losses, name='total_loss')
 
         # Build a Graph that trains the model with one batch of examples and updates the model parameters
-        train_op = facenet.train(total_loss, global_step, args.optimizer,
-                                 learning_rate, args.moving_average_decay, tf.global_variables(), args.log_histograms)
+        train_op = facenet.train(total_loss, global_step, args.optimizer, learning_rate,
+                                 args.moving_average_decay, tf.global_variables(), args.log_histograms)
 
         # Create a saver
         saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
@@ -213,17 +217,20 @@ def main(args):
                 step = sess.run(global_step, feed_dict=None)
                 epoch = step // args.epoch_size
                 # Train for one epoch
-                train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder, labels_placeholder,
-                      learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, global_step,
-                      total_loss, train_op, summary_op, summary_writer, regularization_losses, args.learning_rate_schedule_file)
+                train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op,
+                      image_paths_placeholder, labels_placeholder, learning_rate_placeholder,
+                      phase_train_placeholder, batch_size_placeholder, global_step, total_loss, train_op,
+                      summary_op, summary_writer, regularization_losses, args.learning_rate_schedule_file)
 
                 # Save variables and the metagraph if it doesn't exist already
                 save_variables_and_metagraph(sess, saver, summary_writer, model_dir, subdir, step)
 
                 # Evaluate on LFW
                 if args.lfw_dir:
-                    evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder, batch_size_placeholder,
-                             embeddings, label_batch, lfw_paths, actual_issame, args.lfw_batch_size, args.lfw_nrof_folds, log_dir, step, summary_writer)
+                    evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder,
+                             phase_train_placeholder, batch_size_placeholder, embeddings, label_batch,
+                             lfw_paths, actual_issame, args.lfw_batch_size, args.lfw_nrof_folds, log_dir,
+                             step, summary_writer)
     sess.close()
     return model_dir
 
@@ -261,9 +268,11 @@ def filter_dataset(dataset, data_filename, percentile, min_nrof_images_per_class
     return filtered_dataset
 
 
-def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder, labels_placeholder,
-          learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, global_step,
-          loss, train_op, summary_op, summary_writer, regularization_losses, learning_rate_schedule_file):
+def train(
+        args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder,
+        labels_placeholder, learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder,
+        global_step, loss, train_op, summary_op, summary_writer, regularization_losses,
+        learning_rate_schedule_file):
     batch_number = 0
 
     if args.learning_rate > 0.0:
@@ -284,12 +293,17 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
     train_time = 0
     while batch_number < args.epoch_size:
         start_time = time.time()
-        feed_dict = {learning_rate_placeholder: lr, phase_train_placeholder: True, batch_size_placeholder: args.batch_size}
+        feed_dict = {learning_rate_placeholder: lr, phase_train_placeholder: True,
+                     batch_size_placeholder: args.batch_size}
         if (batch_number % 100 == 0):
-            err, _, step, reg_loss, summary_str = sess.run([loss, train_op, global_step, regularization_losses, summary_op], feed_dict=feed_dict)
+            err, _, step, reg_loss, summary_str = sess.run(
+                [loss, train_op, global_step, regularization_losses, summary_op],
+                feed_dict=feed_dict)
             summary_writer.add_summary(summary_str, global_step=step)
         else:
-            err, _, step, reg_loss = sess.run([loss, train_op, global_step, regularization_losses], feed_dict=feed_dict)
+            err, _, step, reg_loss = sess.run(
+                [loss, train_op, global_step, regularization_losses],
+                feed_dict=feed_dict)
         duration = time.time() - start_time
         print('Epoch: [%d][%d/%d]\tTime %.3f\tLoss %2.3f\tRegLoss %2.3f' %
               (epoch, batch_number + 1, args.epoch_size, duration, err, np.sum(reg_loss)))
@@ -303,8 +317,10 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
     return step
 
 
-def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder, batch_size_placeholder,
-             embeddings, labels, image_paths, actual_issame, batch_size, nrof_folds, log_dir, step, summary_writer):
+def evaluate(
+        sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
+        batch_size_placeholder, embeddings, labels, image_paths, actual_issame, batch_size, nrof_folds,
+        log_dir, step, summary_writer):
     start_time = time.time()
     # Run forward pass to calculate embeddings
     print('Runnning forward pass on LFW images')
@@ -326,7 +342,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         lab_array[lab] = lab
         emb_array[lab] = emb
 
-    assert np.array_equal(lab_array, np.arange(nrof_images)) == True, 'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
+    assert np.array_equal(lab_array, np.arange(
+        nrof_images)) == True, 'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
     _, _, accuracy, val, val_std, far = lfw.evaluate(emb_array, actual_issame, nrof_folds=nrof_folds)
 
     print('Accuracy: %1.3f+-%1.3f' % (np.mean(accuracy), np.std(accuracy)))
@@ -372,16 +389,21 @@ def parse_arguments(argv):
     parser.add_argument('--logs_base_dir', type=str,
                         help='Directory where to write event logs.', default='~/logs/facenet')
     parser.add_argument('--models_base_dir', type=str,
-                        help='Directory where to write trained models and checkpoints.', default='~/models/facenet')
-    parser.add_argument('--gpu_memory_fraction', type=float,
-                        help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
+                        help='Directory where to write trained models and checkpoints.',
+                        default='~/models/facenet')
+    parser.add_argument(
+        '--gpu_memory_fraction', type=float,
+        help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
     parser.add_argument('--pretrained_model', type=str,
                         help='Load a pretrained model before training starts.')
-    parser.add_argument('--data_dir', type=str,
-                        help='Path to the data directory containing aligned face patches. Multiple directories are separated with colon.',
-                        default='~/datasets/casia/casia_maxpy_mtcnnalign_182_160')
-    parser.add_argument('--model_def', type=str,
-                        help='Model definition. Points to a module containing the definition of the inference graph.', default='models.inception_resnet_v1')
+    parser.add_argument(
+        '--data_dir', type=str,
+        help='Path to the data directory containing aligned face patches. Multiple directories are separated with colon.',
+        default='~/datasets/casia/casia_maxpy_mtcnnalign_182_160')
+    parser.add_argument(
+        '--model_def', type=str,
+        help='Model definition. Points to a module containing the definition of the inference graph.',
+        default='models.inception_resnet_v1')
     parser.add_argument('--max_nrof_epochs', type=int,
                         help='Number of epochs to run.', default=500)
     parser.add_argument('--batch_size', type=int,
@@ -392,9 +414,11 @@ def parse_arguments(argv):
                         help='Number of batches per epoch.', default=1000)
     parser.add_argument('--embedding_size', type=int,
                         help='Dimensionality of the embedding.', default=128)
-    parser.add_argument('--random_crop',
-                        help='Performs random cropping of training images. If false, the center image_size pixels from the training images are used. ' +
-                        'If the size of the images in the data directory is equal to image_size no cropping is performed', action='store_true')
+    parser.add_argument(
+        '--random_crop',
+        help='Performs random cropping of training images. If false, the center image_size pixels from the training images are used. '
+        + 'If the size of the images in the data directory is equal to image_size no cropping is performed',
+        action='store_true')
     parser.add_argument('--random_flip',
                         help='Performs random horizontal flipping of training images.', action='store_true')
     parser.add_argument('--random_rotate',
@@ -426,8 +450,10 @@ def parse_arguments(argv):
                         help='Number of preprocessing (data loading and augumentation) threads.', default=4)
     parser.add_argument('--log_histograms',
                         help='Enables logging of weight/bias histograms in tensorboard.', action='store_true')
-    parser.add_argument('--learning_rate_schedule_file', type=str,
-                        help='File containing the learning rate schedule that is used when learning_rate is set to to -1.', default='data/learning_rate_schedule.txt')
+    parser.add_argument(
+        '--learning_rate_schedule_file', type=str,
+        help='File containing the learning rate schedule that is used when learning_rate is set to to -1.',
+        default='data/learning_rate_schedule.txt')
     parser.add_argument('--filter_filename', type=str,
                         help='File containing image data used for dataset filtering', default='')
     parser.add_argument('--filter_percentile', type=float,
@@ -444,8 +470,9 @@ def parse_arguments(argv):
                         help='Path to the data directory containing aligned face patches.', default='')
     parser.add_argument('--lfw_batch_size', type=int,
                         help='Number of images to process in a batch in the LFW test set.', default=100)
-    parser.add_argument('--lfw_nrof_folds', type=int,
-                        help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
+    parser.add_argument(
+        '--lfw_nrof_folds', type=int,
+        help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
     return parser.parse_args(argv)
 
 

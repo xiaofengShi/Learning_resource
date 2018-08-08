@@ -129,18 +129,7 @@ class Network(object):
         assert padding in ('SAME', 'VALID')
 
     @layer
-    def conv(self,
-             inp,
-             k_h,
-             k_w,
-             c_o,
-             s_h,
-             s_w,
-             name,
-             relu=True,
-             padding='SAME',
-             group=1,
-             biased=True):
+    def conv(self, inp, k_h, k_w, c_o, s_h, s_w, name, relu=True, padding='SAME', group=1, biased=True):
         # Verify that the padding is acceptable
         self.validate_padding(padding)
         # Get the number of channels in the input
@@ -296,11 +285,13 @@ def create_mtcnn(sess, model_path):
     return pnet_fun, rnet_fun, onet_fun
 
 def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
-    # im: input image
-    # minsize: minimum of faces' size
-    # pnet, rnet, onet: caffemodel
-    # threshold: threshold=[th1 th2 th3], th1-3 are three steps's threshold
-    # fastresize: resize img from last scale (using in high-resolution images) if fastresize==true
+    """ 
+    im: input image
+    minsize: minimum of faces' size
+    pnet, rnet, onet: caffemodel
+    threshold: threshold=[th1 th2 th3], th1-3 are three steps's threshold
+    fastresize: resize img from last scale (using in high-resolution images) if fastresize==true 
+    """
     factor_count=0
     total_boxes=np.empty((0,9))
     points=[]
@@ -324,11 +315,14 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
         im_data = imresample(img, (hs, ws))
         im_data = (im_data-127.5)*0.0078125
         img_x = np.expand_dims(im_data, 0)
-        img_y = np.transpose(img_x, (0,2,1,3))
+        """ 图像进行转置 """
+        img_y = np.transpose(img_x, (0, 2, 1, 3))  
         out = pnet(img_y)
-        out0 = np.transpose(out[0], (0,2,1,3))
-        out1 = np.transpose(out[1], (0,2,1,3))
-        
+        out0 = np.transpose(out[0], (0,2,1,3)) # bounding box regression 
+        out1 = np.transpose(out[1], (0, 2, 1, 3)) # classify
+        print('img_y shpe:',np.shape(img_y))
+
+        print('out0,out1',np.shape(out0),np.shape(out1))
         boxes, _ = generateBoundingBox(out1[0,:,:,1].copy(), out0[0,:,:,:].copy(), scale, threshold[0])
         
         # inter-scale nms
@@ -363,7 +357,8 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
                 tempimg[:,:,:,k] = imresample(tmp, (24, 24))
             else:
                 return np.empty()
-        tempimg = (tempimg-127.5)*0.0078125
+        tempimg = (tempimg - 127.5) * 0.0078125
+        print('temping shape:',np.shape(tempimg))
         tempimg1 = np.transpose(tempimg, (3,1,0,2))
         out = rnet(tempimg1)
         out0 = np.transpose(out[0])
@@ -480,7 +475,7 @@ def bulk_detect_face(images, detection_window_size_ratio, pnet, rnet, onet, thre
             image_index = images_obj_per_resolution[resolution][index]['index']
             out0 = np.transpose(outs[0][index], (1, 0, 2))
             out1 = np.transpose(outs[1][index], (1, 0, 2))
-
+            
             boxes, _ = generateBoundingBox(out1[:, :, 1].copy(), out0[:, :, :].copy(), scale, threshold[0])
 
             # inter-scale nms
