@@ -96,18 +96,16 @@ class Seq2SeqModel(object):
 
             def sampled_loss(labels, logits):
                 labels = tf.reshape(labels, [-1, 1])
-                #需要使用 32bit的浮点数类型来计算sampled_softmax_loss,才会避免数值的不稳定性发生.
+                # 需要使用 32bit的浮点数类型来计算sampled_softmax_loss,才会避免数值的不稳定性发生.
                 local_w_t = tf.cast(w_t, tf.float32)
                 local_b = tf.cast(b, tf.float32)
                 local_inputs = tf.cast(logits, tf.float32)
-                return tf.cast(
-                    tf.nn.sampled_softmax_loss(
-                        weights=local_w_t,
-                        biases=local_b,
-                        labels=labels,
-                        inputs=local_inputs,
-                        num_sampled=num_samples,
-                        num_classes=self.target_vocab_size), dtype)
+                return tf.cast(tf.nn.sampled_softmax_loss(weights=local_w_t,
+                                                          biases=local_b,
+                                                          labels=labels,
+                                                          inputs=local_inputs,
+                                                          num_sampled=num_samples,
+                                                          num_classes=self.target_vocab_size), dtype)
 
             softmax_loss_function = sampled_loss
 
@@ -143,19 +141,13 @@ class Seq2SeqModel(object):
         self.encoder_inputs = []
         self.decoder_inputs = []
         self.target_weights = []
-        for i in range(buckets[-1][0]):  #最后的bucket 是最大的.
-            self.encoder_inputs.append(
-                tf.placeholder(
-                    tf.int32, shape=[None], name="encoder{0}".format(i)))
+        for i in range(buckets[-1][0]):  # 最后的bucket 是最大的.
+            self.encoder_inputs.append(tf.placeholder(tf.int32, shape=[None], name="encoder{0}".format(i)))
         for i in range(buckets[-1][1] + 1):
-            self.decoder_inputs.append(
-                tf.placeholder(
-                    tf.int32, shape=[None], name="decoder{0}".format(i)))
-            self.target_weights.append(
-                tf.placeholder(
-                    dtype, shape=[None], name="weight{0}".format(i)))
+            self.decoder_inputs.append(tf.placeholder(tf.int32, shape=[None], name="decoder{0}".format(i)))
+            self.target_weights.append(tf.placeholder(dtype, shape=[None], name="weight{0}".format(i)))
 
-        #将解码器移动一位得到targets.
+        # 将解码器移动一位得到targets.
         targets = [
             self.decoder_inputs[i + 1]
             for i in range(len(self.decoder_inputs) - 1)
@@ -176,8 +168,7 @@ class Seq2SeqModel(object):
                 for b in range(len(buckets)):
                     self.outputs[b] = [
                         tf.matmul(output, output_projection[0]) +
-                        output_projection[1] for output in self.outputs[b]
-                    ]
+                        output_projection[1] for output in self.outputs[b]]
         else:
             self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(
                 self.encoder_inputs,
@@ -196,13 +187,11 @@ class Seq2SeqModel(object):
             opt = tf.train.GradientDescentOptimizer(self.learning_rate)
             for b in range(len(buckets)):
                 gradients = tf.gradients(self.losses[b], params)
-                clipped_gradients, norm = tf.clip_by_global_norm(
-                    gradients, max_gradient_norm)
+                clipped_gradients, norm = tf.clip_by_global_norm(gradients, max_gradient_norm)
                 self.gradient_norms.append(norm)
-                self.updates.append(
-                    opt.apply_gradients(
-                        zip(clipped_gradients, params),
-                        global_step=self.global_step))
+                self.updates.append(opt.apply_gradients(
+                    zip(clipped_gradients, params),
+                    global_step=self.global_step))
 
         self.saver = tf.train.Saver(tf.global_variables())
 
@@ -212,15 +201,15 @@ class Seq2SeqModel(object):
       Args:
           session: tensorflow 所使用的session.
           encoder_inputs: 用来注入encoder 输入数据的numpy int vectors类型的list。
-          decoder_inputs: 用来注入decoder输入数据的numpy int vectors类型的list。
+          decoder_inputs: 用来注入decoder 输入数据的numpy int vectors类型的list。
           target_weights: 用来注入target weights的numpy float vectors类型的list.
           bucket_id: which bucket of the model to use.
           forward_only: 只进行正向传播.
-          
-	    Returns:
+
+            Returns:
              一个由gradient norm (不做反向时为none),average perplexity, and the outputs组成的triple.
-         
-	    Raises:
+
+            Raises:
              ValueError:如果 encoder_inputs, decoder_inputs, 或者是target_weights 的长度与指定bucket_id 的bucket size不符合.
     """
 
@@ -273,12 +262,12 @@ class Seq2SeqModel(object):
 
     def get_batch(self, data, bucket_id):
         """在迭代训练过程中，从指定 bucket中获得一个随机批次数据.
-	    Args:
-	      data: 一个大小为len(self.buckets)的tuple，包含了创建一个batch中的输入输出的
-	        lists.
-	      bucket_id: 整型, 指定从哪个bucket中取数据.
-	    Returns:
-	      方便以后调用的 triple (encoder_inputs, decoder_inputs, target_weights) 
+            Args:
+              data: 一个大小为len(self.buckets)的tuple，包含了创建一个batch中的输入输出的
+                lists.
+              bucket_id: 整型, 指定从哪个bucket中取数据.
+            Returns:
+              方便以后调用的 triple (encoder_inputs, decoder_inputs, target_weights) 
     """
         encoder_size, decoder_size = self.buckets[bucket_id]
         encoder_inputs, decoder_inputs = [], []

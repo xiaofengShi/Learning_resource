@@ -11,7 +11,7 @@ bash download_dataset.sh apple2orange
 
 将图片转换成tfrecords格式：
 
-```
+```bash
 python build_data.py \
   --X_input_dir data/apple2orange/trainA \
   --Y_input_dir data/apple2orange/trainB \
@@ -20,7 +20,7 @@ python build_data.py \
 ```
 
 训练模型：
-```
+```bash
 python train.py \
   --X data/tfrecords/apple.tfrecords \
   --Y data/tfrecords/orange.tfrecords \
@@ -28,24 +28,24 @@ python train.py \
 ```
 
 打开TensorBoard(需要将--logdir checkpoints/20170715-1622 中的目录替换为自己机器中的对应目录)：
-```
+```bash
 tensorboard --logdir checkpoints/20170715-1622
 ```
 
 导出模型(同样要注意将20170715-1622 替换为自己机器中的对应目录)：
-```
+```bash
 python export_graph.py \
-  --checkpoint_dir checkpoints/20170715-1622 \
+  --checkpoint_dir checkpoints/20181017-1831 \
   --XtoY_model apple2orange.pb \
   --YtoX_model orange2apple.pb \
   --image_size 256
 ```
 
 使用测试集中的图片进行测试：
-```
+```bash
 python inference.py \
   --model pretrained/apple2orange.pb \
-  --input data/apple2orange/testA/n07740461_1661.jpg \
+  --input data/apple2orange/testA/n07740461_3530.jpg \
   --output data/apple2orange/output_sample.jpg \
   --image_size 256
 ```

@@ -2,7 +2,19 @@
 
 本节的程序来源于项目 https://github.com/affinelayer/pix2pix-tensorflow 。
 
-**9.3.1 执行已有的数据集**
+- The model graph is bellow.
+
+![img](assets/graph.png)
+
+-  two discriminator : real and fake
+  -  real is the input and target
+  -  fake is the input and the predict by the generator
+-  one generator 
+  - Down sample and up sample  and contact the down and up which has the same feature size.-
+
+-  
+
+9.3.1 执行已有的数据集**
 
 下载Facades数据集：
 ```
@@ -21,7 +33,7 @@ python pix2pix.py \
 
 测试：
 ```
-python pix2pix.py \
+python3 pix2pix.py \
   --mode test \
   --output_dir facades_test \
   --input_dir facades/val \
@@ -89,11 +101,11 @@ python pix2pix.py \
 ```
 
 测试命令：
-```
-python pix2pix.py \
+```python
+python3 pix2pix.py \
   --mode test \
   --output_dir colorlization_anime_test \
-  --input_dir ~/datasets/colorlization/anime_resized/val \
+  --input_dir ./datasets/colorlization/anime_resized/val \
   --checkpoint colorlization_anime
 ```
 
