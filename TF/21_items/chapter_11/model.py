@@ -158,6 +158,8 @@ class CycleGAN:
         """
         if use_lsgan:
             # use mean squared error
+            # tf.squared_difference(x,y)
+            # calculate the squared error between x and y
             loss = tf.reduce_mean(tf.squared_difference(D(fake_y), REAL_LABEL))
         else:
             # heuristic, non-saturating loss
